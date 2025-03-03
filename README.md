@@ -23,16 +23,16 @@ export PASS=[PASS]
 ## Using the Tool
 
 - Get classlist
-```
-python3 app.py -c [course-number] -t [classlist] -d [download-dir] 
-```
+  ```
+  python3 app.py -c [course-number] -t [classlist] -d [download-dir] 
+  ```
 
 - Get grades (*NOTE: requires a classlist .csv in classlists/*)
 ```
 python3 app.py -c [course-number] -t [grades] -d [download-dir] 
 ```
 
-Get assignment submissions (*NOTE: requires a classlist .csv in classlists/*)
+- Get assignment submissions (*NOTE: requires a classlist .csv in classlists/*)
 ```
 python3 app.py -c [course-number] -t [assignment] -n [name] -d [download-dir] 
 ```
