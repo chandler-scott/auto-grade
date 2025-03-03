@@ -1,0 +1,6 @@
+webdriver_manager
+selenium
+requests>=2.26.0
+urllib3<2
+chardet>=3.0.4,<5
+pandas
