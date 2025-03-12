@@ -7,20 +7,26 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 import time
+import traceback
 import os
 
 class D2LScraper:
-    def __init__(self, course, download_dir):
+    def __init__(self, course, download_dir, headless):
         self.course = course
         self.download_dir = download_dir
+        self.headless = headless
         self.driver = self.webdriver_setup()
         self.wait = WebDriverWait(self.driver, 10)
 
     def webdriver_setup(self):
         chrome_options = webdriver.ChromeOptions()
-        #chrome_options.add_argument("--headless")  
+        if (self.headless):
+            chrome_options.add_argument("--headless")  
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("user-data-dir=~/.config/google-chrome/") 
+        chrome_options.add_argument("profile-directory=Default") 
+
 
         # Download Handler
         os.makedirs(self.download_dir, exist_ok=True)
@@ -67,25 +73,46 @@ class D2LScraper:
 
     def login(self, email, password):
         self.open_webpage("https://elearn.etsu.edu/d2l/lp/auth/saml/initiate-login?entityId=https%3A%2F%2Fsts.windows.net%2F962441d5-5055-4349-bad3-baec43c3d741%2F&target=%2fd2l%2fhome")
-        # Email
-        email_input = self.select_element_bycss(f"input[type='email']")
-        email_input.send_keys(email)
-        email_input.send_keys(Keys.RETURN)
 
-        # Password
-        pass_input = self.select_element_bycss(f"input[type='password']")
-        pass_input.send_keys(password)
-        pass_input.send_keys(Keys.RETURN)
-        
-        # Wait for 2FA, if necessary
-        self.wait_for_element_byclass("d2l-body-main-wrapper", 20)
-            
+        try:
+            # Wait for either email input or password input
+            wait = WebDriverWait(self.driver, 5)
+
+            email_or_password = wait.until(
+                EC.any_of(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, "input[type='email']")),
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, "input[type='password']"))
+                )
+            )
+
+            # Check which element appeared
+            if email_or_password.tag_name == "input" and email_or_password.get_attribute("type") == "email":
+                # Email input is present
+                email_or_password.send_keys(email)
+                email_or_password.send_keys(Keys.RETURN)
+
+                # Wait for the password field after submitting email
+                pass_input = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "input[type='password']")))
+            else:
+                # Email was cached, password input is present first
+                pass_input = email_or_password  # Already located password field
+
+            # Enter password
+            pass_input.send_keys(password)
+            pass_input.send_keys(Keys.RETURN)
+
+            # Wait for 2FA or successful login
+            self.wait_for_element_byclass("d2l-body-main-wrapper", 20)
+
+        except Exception as e:
+            print(f"Login failed: {e} \nTry running with GUI.")
+
     def quit(self):
         self.driver.quit()
 
 class SubmissionScraper(D2LScraper):
-    def __init__(self, course, assignment_name, download_dir):
-        super().__init__(course, download_dir)
+    def __init__(self, course, assignment_name, download_dir, headless):
+        super().__init__(course, download_dir, headless)
         self.assignment_name = assignment_name
 
     def get_submissions(self):
@@ -127,8 +154,8 @@ class SubmissionScraper(D2LScraper):
         time.sleep(200)
 
 class ClasslistScraper(D2LScraper):
-    def __init__(self, course, download_dir):
-        D2LScraper.__init__(self, course, download_dir)
+    def __init__(self, course, download_dir, headless):
+        D2LScraper.__init__(self, course, download_dir, headless)
 
     def get_classlist(self):
         # Go to grades page
@@ -160,16 +187,16 @@ class ClasslistScraper(D2LScraper):
         time.sleep(15)
 
 class QuizScraper(D2LScraper):
-    def __init__(self, course, quiz_name, download_dir):
-        D2LScraper.__init__(self, course, download_dir)
+    def __init__(self, course, quiz_name, download_dir, headless):
+        D2LScraper.__init__(self, course, download_dir, headless)
         self.quiz_name = quiz_name
 
     def get_quiz(self):
         time.sleep(2)
 
 class GradesScraper(D2LScraper):
-    def __init__(self, course, download_dir):
-        D2LScraper.__init__(self, course, download_dir)
+    def __init__(self, course, download_dir, headless):
+        D2LScraper.__init__(self, course, download_dir, headless)
 
     def get_grades(self):
         # Go to grades page

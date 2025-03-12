@@ -1,3 +1,2 @@
-1) add classlist argument (with default)
-2) clean up app.py
-3) read course IDs from file
+1) Fix login() in D2LScraper
+2) Fix classlist fetch
